@@ -120,11 +120,11 @@ export default function App() {
               style={{ transform: `scale(${overlayScale})` }}
               className="bg-black/60 backdrop-blur-md px-8 py-10 md:px-16 md:py-12 rounded-3xl text-center shadow-2xl border border-white/10 max-w-4xl w-full transition-transform duration-200 origin-center flex flex-col items-center gap-4"
             >
-              <div className="text-5xl md:text-6xl lg:text-7xl font-normal text-white drop-shadow-md leading-tight tracking-tight">
+              <div className="text-5xl md:text-6xl lg:text-7xl font-medium text-white drop-shadow-md leading-tight tracking-tight">
                 The <span style={{ color: eventColor }}>{eventName}</span> starts in
               </div>
-              <div className="flex items-baseline gap-4 text-5xl md:text-6xl lg:text-7xl font-normal text-white drop-shadow-xl tracking-tighter leading-tight">
-                <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
+              <div className="flex items-baseline gap-4 text-5xl md:text-6xl lg:text-7xl font-medium text-white drop-shadow-xl tracking-tighter leading-tight">
+                <span className="font-mono" style={{ color: eventColor }}>{formatTime(timeLeft)}</span>
                 <span className="tracking-tight">minutes.</span>
               </div>
             </div>
