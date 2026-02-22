@@ -4,7 +4,7 @@ import {
   Hand, MonitorUp, MoreVertical, Phone,
   Info, Users, MessageSquare, Shapes, Lock,
   Settings, Play, Pause, RotateCcw, Image as ImageIcon,
-  Upload, X
+  Upload, X, BellRing
 } from 'lucide-react';
 
 export default function App() {
@@ -217,7 +217,7 @@ export default function App() {
                           alarmTimeoutRef.current = setTimeout(() => {
                             setIsAlarmRinging(true);
                             if (!audioRef.current) {
-                              audioRef.current = new Audio('/alarm-sound.mp3');
+                              audioRef.current = new Audio(import.meta.env.BASE_URL + 'alarm-sound.mp3');
                               audioRef.current.loop = true;
                             }
                             audioRef.current.play().catch(e => console.error(e));
@@ -267,7 +267,7 @@ export default function App() {
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-auto">
             <div className="bg-[#202124] border border-red-500/50 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full mx-4">
               <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
-                <Phone size={32} className="text-red-500 animate-pulse" />
+                <BellRing size={32} className="text-red-500 animate-pulse" />
               </div>
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-white mb-2">Alarm!</h2>
