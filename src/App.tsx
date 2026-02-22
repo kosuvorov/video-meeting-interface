@@ -123,11 +123,9 @@ export default function App() {
               <div className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-md leading-tight tracking-tight">
                 The <span style={{ color: eventColor }}>{eventName}</span> starts in
               </div>
-              <div className="text-5xl md:text-6xl lg:text-7xl font-bold font-mono text-white drop-shadow-xl tracking-tighter leading-tight">
-                {formatTime(timeLeft)}
-              </div>
-              <div className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-md leading-tight tracking-tight">
-                minutes.
+              <div className="flex items-baseline gap-4 text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-xl tracking-tighter leading-tight">
+                <span className="font-mono">{formatTime(timeLeft)}</span>
+                <span className="tracking-tight">minutes.</span>
               </div>
             </div>
           </div>
