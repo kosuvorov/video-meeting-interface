@@ -11,9 +11,9 @@ import { get as idbGet, set as idbSet } from 'idb-keyval';
 export default function App() {
   const [eventName, setEventName] = useState('meeting');
   const [initialMinutes, setInitialMinutes] = useState(5);
-  const [initialSeconds, setInitialSeconds] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
-  const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number>(0);
+  const [initialSeconds, setInitialSeconds] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(310); // 5 minutes 10 seconds
+  const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number>(10);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [eventColor, setEventColor] = useState('#60A5FA');
