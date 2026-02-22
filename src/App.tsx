@@ -4,8 +4,9 @@ import {
   Hand, MonitorUp, MoreVertical, Phone,
   Info, Users, MessageSquare, Shapes, Lock,
   Settings, Play, Pause, RotateCcw, Image as ImageIcon,
-  Upload, X, BellRing
+  Upload, X, BellRing, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { get as idbGet, set as idbSet } from 'idb-keyval';
 
 export default function App() {
   const [eventName, setEventName] = useState('meeting');
@@ -15,6 +16,9 @@ export default function App() {
   const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number | ''>('');
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [eventColor, setEventColor] = useState('#60A5FA');
+  const [overlayScale, setOverlayScale] = useState(1);
+  const [recentImages, setRecentImages] = useState<{ name: string, data: string }[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const alarmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,8 +44,15 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Clock
+  // Clock & Recent Images
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+
+    // Load recent files
+    idbGet('video-meeting-recents').then((val) => {
+      if (val) setRecentImages(val);
+    }).catch(console.error);
+
     return () => clearInterval(timer);
   }, []);
 
@@ -66,8 +77,17 @@ export default function App() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setSlideImage(url);
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setSlideImage(dataUrl);
+        // Only keep the latest 5 to stop IndexedDB bloating uncomfortably
+        const updated = [{ name: file.name, data: dataUrl }, ...recentImages.filter(i => i.name !== file.name)].slice(0, 5);
+        setRecentImages(updated);
+        idbSet('video-meeting-recents', updated).catch(console.error);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -91,9 +111,12 @@ export default function App() {
 
           {/* Timer Overlay */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-            <div className="bg-black/60 backdrop-blur-md px-8 py-10 md:px-16 md:py-12 rounded-3xl text-center shadow-2xl border border-white/10 max-w-4xl w-full">
+            <div
+              style={{ transform: `scale(${overlayScale})` }}
+              className="bg-black/60 backdrop-blur-md px-8 py-10 md:px-16 md:py-12 rounded-3xl text-center shadow-2xl border border-white/10 max-w-4xl w-full transition-transform duration-200 origin-center"
+            >
               <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
-                The <span className="text-blue-400 font-semibold">{eventName}</span> starts in
+                The <span style={{ color: eventColor }} className="font-semibold">{eventName}</span> starts in
               </div>
               <div className="text-5xl md:text-7xl font-bold my-4 font-mono text-white drop-shadow-xl tracking-tighter leading-none">
                 {formatTime(timeLeft)}
@@ -101,6 +124,40 @@ export default function App() {
               <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
                 minutes.
               </div>
+            </div>
+          </div>
+
+          {/* Dummy Slide Overlay */}
+          {slideImage && (
+            <div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur-sm pl-4 pr-3 py-2.5 rounded-xl flex items-center gap-5 text-white pointer-events-auto border border-white/10 shadow-lg">
+              <span className="text-[13px] font-medium opacity-90 tracking-wide">Sharing slide 1 of 23</span>
+              <div className="flex gap-2">
+                <button className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition shadow-sm"><ChevronLeft size={16} /></button>
+                <button className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition shadow-sm"><ChevronRight size={16} /></button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dummy Meeting Tiles (Left Side) */}
+        <div className="absolute top-8 left-8 flex flex-col gap-5 z-40 pointer-events-none hidden lg:flex">
+          <div className="w-[200px] h-[130px] bg-[#3c4043] rounded-[14px] overflow-hidden relative shadow-2xl border border-white/10 flex flex-col items-center justify-center pointer-events-auto hover:border-white/20 transition-colors">
+            <div className="w-[52px] h-[52px] bg-indigo-500 rounded-full flex items-center justify-center text-xl font-medium text-white shadow-md">AS</div>
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-white">
+              <div className="text-xs font-semibold px-2 py-1 bg-black/50 backdrop-blur-md rounded-md flex items-center gap-1.5 shadow-sm">
+                <MicOff size={11} className="text-red-400" /> Alice S.
+              </div>
+              <div className="text-[10px] text-gray-300 font-medium px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md tracking-wide">Waiting</div>
+            </div>
+          </div>
+
+          <div className="w-[200px] h-[130px] bg-[#3c4043] rounded-[14px] overflow-hidden relative shadow-2xl border border-white/10 flex flex-col items-center justify-center pointer-events-auto hover:border-white/20 transition-colors">
+            <div className="w-[52px] h-[52px] bg-rose-500 rounded-full flex items-center justify-center text-xl font-medium text-white shadow-md">JD</div>
+            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex justify-between items-center text-white">
+              <div className="text-xs font-semibold px-2 py-1 bg-black/50 backdrop-blur-md rounded-md flex items-center gap-1.5 shadow-sm">
+                <MicOff size={11} className="text-red-400" /> John D.
+              </div>
+              <div className="text-[10px] text-gray-300 font-medium px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md tracking-wide">Waiting</div>
             </div>
           </div>
         </div>
@@ -117,17 +174,28 @@ export default function App() {
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-5 max-h-[80vh] overflow-y-auto pr-1 pb-2 custom-scrollbar">
               {/* Event Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Event Name</label>
-                <input
-                  type="text"
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  className="w-full bg-[#3c4043] border border-gray-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-                  placeholder="e.g. meeting, webinar"
-                />
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1.5">Event Name</label>
+                  <input
+                    type="text"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    className="w-full bg-[#3c4043] border border-gray-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                    placeholder="e.g. meeting, webinar"
+                  />
+                </div>
+                <div className="shrink-0 w-12">
+                  <label className="block text-sm font-medium text-gray-400 mb-1.5 truncate">Color</label>
+                  <input
+                    type="color"
+                    value={eventColor}
+                    onChange={(e) => setEventColor(e.target.value)}
+                    className="w-full h-[42px] bg-[#3c4043] border border-gray-600 rounded-lg cursor-pointer p-0.5"
+                  />
+                </div>
               </div>
 
               {/* Timer Duration */}
@@ -202,6 +270,52 @@ export default function App() {
                     className="hidden"
                   />
                 </label>
+              </div>
+
+              {/* Recent Images */}
+              {recentImages.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-1.5">Recent Slides</label>
+                  <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+                    {recentImages.map((img, idx) => (
+                      <div key={idx} className="relative shrink-0 group">
+                        <img
+                          src={img.data}
+                          alt={img.name}
+                          onClick={() => setSlideImage(img.data)}
+                          className={`w-16 h-12 object-cover rounded-lg border-2 cursor-pointer transition-colors ${slideImage === img.data ? 'border-blue-500' : 'border-gray-600 hover:border-gray-400'}`}
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newRecents = recentImages.filter((_, i) => i !== idx);
+                            setRecentImages(newRecents);
+                            idbSet('video-meeting-recents', newRecents).catch(console.error);
+                            if (slideImage === img.data && !newRecents.find(r => r.data === img.data)) setSlideImage(null);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition shadow-lg"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Timer UI Scale */}
+              <div>
+                <label className="flex justify-between text-sm font-medium text-gray-400 mb-1.5">
+                  <span>Card Size</span>
+                  <span className="text-gray-500">{overlayScale.toFixed(1)}x</span>
+                </label>
+                <input
+                  type="range"
+                  min="0.5" max="1.5" step="0.1"
+                  value={overlayScale}
+                  onChange={e => setOverlayScale(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                />
               </div>
 
               {/* Timer Controls */}
