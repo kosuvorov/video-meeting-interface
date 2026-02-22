@@ -13,7 +13,7 @@ export default function App() {
   const [initialMinutes, setInitialMinutes] = useState(5);
   const [initialSeconds, setInitialSeconds] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
-  const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number | ''>('');
+  const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number>(0);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [eventColor, setEventColor] = useState('#60A5FA');
@@ -24,6 +24,11 @@ export default function App() {
   const alarmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Preload audio so it fires instantly without network lag
+    audioRef.current = new Audio(import.meta.env.BASE_URL + 'alarm-sound.mp3');
+    audioRef.current.preload = 'auto';
+    audioRef.current.loop = true;
+
     return () => {
       if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
       if (audioRef.current) {
@@ -242,19 +247,17 @@ export default function App() {
 
               {/* Alarm Setting */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Alarm Trigger (after start)</label>
-                <select
+                <label className="flex justify-between text-sm font-medium text-gray-400 mb-1.5">
+                  <span>Alarm Trigger (after start)</span>
+                  <span className="text-gray-500">{alarmTriggerSeconds === 0 ? 'No Alarm' : `${alarmTriggerSeconds} Seconds`}</span>
+                </label>
+                <input
+                  type="range"
+                  min="0" max="60" step="5"
                   value={alarmTriggerSeconds}
-                  onChange={(e) => setAlarmTriggerSeconds(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full bg-[#3c4043] border border-gray-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-                >
-                  <option value="">No Alarm</option>
-                  <option value="10">10 Seconds</option>
-                  <option value="30">30 Seconds</option>
-                  <option value="60">1 Minute</option>
-                  <option value="300">5 Minutes</option>
-                  <option value="600">10 Minutes</option>
-                </select>
+                  onChange={e => setAlarmTriggerSeconds(Number(e.target.value))}
+                  className="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-red-500"
+                />
               </div>
 
               {/* Image Upload */}
@@ -326,16 +329,15 @@ export default function App() {
                     onClick={() => {
                       if (!isRunning) {
                         setShowControls(false); // Close settings automatically on Start
-                        if (alarmTriggerSeconds && Number(alarmTriggerSeconds) > 0) {
+                        if (alarmTriggerSeconds > 0) {
                           if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
                           alarmTimeoutRef.current = setTimeout(() => {
                             setIsAlarmRinging(true);
-                            if (!audioRef.current) {
-                              audioRef.current = new Audio(import.meta.env.BASE_URL + 'alarm-sound.mp3');
-                              audioRef.current.loop = true;
+                            if (audioRef.current) {
+                              audioRef.current.currentTime = 0;
+                              audioRef.current.play().catch(e => console.error(e));
                             }
-                            audioRef.current.play().catch(e => console.error(e));
-                          }, Number(alarmTriggerSeconds) * 1000);
+                          }, alarmTriggerSeconds * 1000);
                         }
                       } else {
                         // On Pause, we cancel the pending alarm but leave it queued for the next 'start'
