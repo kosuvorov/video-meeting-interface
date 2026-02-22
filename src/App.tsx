@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect, useRef } from 'react';
+import {
   MicOff, VideoOff, ClosedCaption, Smile,
-  Hand, MonitorUp, MoreVertical, Phone, 
+  Hand, MonitorUp, MoreVertical, Phone,
   Info, Users, MessageSquare, Shapes, Lock,
   Settings, Play, Pause, RotateCcw, Image as ImageIcon,
   Upload, X
@@ -10,8 +10,31 @@ import {
 export default function App() {
   const [eventName, setEventName] = useState('meeting');
   const [initialMinutes, setInitialMinutes] = useState(5);
+  const [initialSeconds, setInitialSeconds] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number | ''>('');
+  const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const alarmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const stopAlarm = () => {
+    setIsAlarmRinging(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  };
   const [slideImage, setSlideImage] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -72,7 +95,7 @@ export default function App() {
               <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
                 The <span className="text-blue-400 font-semibold">{eventName}</span> starts in
               </div>
-              <div className="text-7xl md:text-[10rem] font-bold my-6 font-mono text-white drop-shadow-2xl tracking-tighter leading-none">
+              <div className="text-5xl md:text-7xl font-bold my-4 font-mono text-white drop-shadow-xl tracking-tighter leading-none">
                 {formatTime(timeLeft)}
               </div>
               <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
@@ -98,8 +121,8 @@ export default function App() {
               {/* Event Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1.5">Event Name</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   className="w-full bg-[#3c4043] border border-gray-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
@@ -109,19 +132,61 @@ export default function App() {
 
               {/* Timer Duration */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Duration (minutes)</label>
-                <input 
-                  type="number" 
-                  min="1"
-                  value={initialMinutes}
-                  onChange={(e) => {
-                    const mins = parseInt(e.target.value) || 0;
-                    setInitialMinutes(mins);
-                    setTimeLeft(mins * 60);
-                    setIsRunning(false);
-                  }}
+                <label className="block text-sm font-medium text-gray-400 mb-1.5">Duration</label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        value={initialMinutes}
+                        onChange={(e) => {
+                          const mins = Math.max(0, parseInt(e.target.value) || 0);
+                          setInitialMinutes(mins);
+                          setTimeLeft(mins * 60 + initialSeconds);
+                          setIsRunning(false);
+                        }}
+                        className="w-full bg-[#3c4043] border border-gray-600 rounded-lg pl-3 pr-8 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">m</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={initialSeconds}
+                        onChange={(e) => {
+                          const secs = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
+                          setInitialSeconds(secs);
+                          setTimeLeft(initialMinutes * 60 + secs);
+                          setIsRunning(false);
+                        }}
+                        className="w-full bg-[#3c4043] border border-gray-600 rounded-lg pl-3 pr-8 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">s</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alarm Setting */}
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1.5">Alarm Trigger (after start)</label>
+                <select
+                  value={alarmTriggerSeconds}
+                  onChange={(e) => setAlarmTriggerSeconds(e.target.value ? Number(e.target.value) : '')}
                   className="w-full bg-[#3c4043] border border-gray-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
-                />
+                >
+                  <option value="">No Alarm</option>
+                  <option value="10">10 Seconds</option>
+                  <option value="30">30 Seconds</option>
+                  <option value="60">1 Minute</option>
+                  <option value="300">5 Minutes</option>
+                  <option value="600">10 Minutes</option>
+                </select>
               </div>
 
               {/* Image Upload */}
@@ -130,9 +195,9 @@ export default function App() {
                 <label className="w-full flex items-center justify-center gap-2 bg-[#3c4043] hover:bg-[#4a4d51] border border-gray-600 rounded-lg px-3 py-2.5 text-white cursor-pointer transition">
                   <Upload size={18} />
                   <span className="font-medium">Upload Image</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    accept="image/*"
                     onChange={handleImageUpload}
                     className="hidden"
                   />
@@ -143,18 +208,38 @@ export default function App() {
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Timer Controls</label>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => setIsRunning(!isRunning)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium transition shadow-sm ${
-                      isRunning ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
+                  <button
+                    onClick={() => {
+                      if (!isRunning) {
+                        setShowControls(false); // Close settings automatically on Start
+                        if (alarmTriggerSeconds && Number(alarmTriggerSeconds) > 0) {
+                          if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
+                          alarmTimeoutRef.current = setTimeout(() => {
+                            setIsAlarmRinging(true);
+                            if (!audioRef.current) {
+                              audioRef.current = new Audio('/alarm-sound.mp3');
+                              audioRef.current.loop = true;
+                            }
+                            audioRef.current.play().catch(e => console.error(e));
+                          }, Number(alarmTriggerSeconds) * 1000);
+                        }
+                      } else {
+                        // On Pause, we cancel the pending alarm but leave it queued for the next 'start'
+                        if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
+                      }
+                      setIsRunning(!isRunning);
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium transition shadow-sm ${isRunning ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'
+                      }`}
                   >
                     {isRunning ? <><Pause size={18} /> Pause</> : <><Play size={18} /> Start</>}
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsRunning(false);
-                      setTimeLeft(initialMinutes * 60);
+                      setTimeLeft(initialMinutes * 60 + initialSeconds);
+                      if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current);
+                      stopAlarm();
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 bg-[#3c4043] hover:bg-[#4a4d51] border border-gray-600 text-white py-2.5 rounded-lg font-medium transition shadow-sm"
                   >
@@ -168,13 +253,34 @@ export default function App() {
 
         {/* Toggle Controls Button (if hidden) */}
         {!showControls && (
-          <button 
+          <button
             onClick={() => setShowControls(true)}
             className="absolute top-8 right-8 bg-[#3c4043] hover:bg-[#4a4d51] p-3.5 rounded-full shadow-2xl border border-gray-600 transition text-gray-200 pointer-events-auto"
             title="Show Presenter Controls"
           >
             <Settings size={22} />
           </button>
+        )}
+
+        {/* Alarm Popup */}
+        {isAlarmRinging && (
+          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-auto">
+            <div className="bg-[#202124] border border-red-500/50 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full mx-4">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                <Phone size={32} className="text-red-500 animate-pulse" />
+              </div>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-white mb-2">Alarm!</h2>
+                <p className="text-gray-400">The scheduled alarm has been triggered.</p>
+              </div>
+              <button
+                onClick={stopAlarm}
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition shadow-lg"
+              >
+                Stop Alarm
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
