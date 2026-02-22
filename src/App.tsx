@@ -16,7 +16,7 @@ export default function App() {
   const [alarmTriggerSeconds, setAlarmTriggerSeconds] = useState<number>(10);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [eventColor, setEventColor] = useState('#60A5FA');
+  const [eventColor, setEventColor] = useState('#FFD438');
   const [overlayScale, setOverlayScale] = useState(1);
   const [recentImages, setRecentImages] = useState<{ name: string, data: string }[]>([]);
 
@@ -118,15 +118,15 @@ export default function App() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
             <div
               style={{ transform: `scale(${overlayScale})` }}
-              className="bg-black/60 backdrop-blur-md px-8 py-10 md:px-16 md:py-12 rounded-3xl text-center shadow-2xl border border-white/10 max-w-4xl w-full transition-transform duration-200 origin-center"
+              className="bg-black/60 backdrop-blur-md px-8 py-10 md:px-16 md:py-12 rounded-3xl text-center shadow-2xl border border-white/10 max-w-4xl w-full transition-transform duration-200 origin-center flex flex-col items-center gap-4"
             >
-              <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
-                The <span style={{ color: eventColor }} className="font-semibold">{eventName}</span> starts in
+              <div className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-md leading-tight tracking-tight">
+                The <span style={{ color: eventColor }}>{eventName}</span> starts in
               </div>
-              <div className="text-5xl md:text-7xl font-bold my-4 font-mono text-white drop-shadow-xl tracking-tighter leading-none">
+              <div className="text-5xl md:text-6xl lg:text-7xl font-bold font-mono text-white drop-shadow-xl tracking-tighter leading-tight">
                 {formatTime(timeLeft)}
               </div>
-              <div className="text-3xl md:text-5xl lg:text-6xl font-medium text-white drop-shadow-md leading-tight">
+              <div className="text-5xl md:text-6xl lg:text-7xl font-bold text-white drop-shadow-md leading-tight tracking-tight">
                 minutes.
               </div>
             </div>
